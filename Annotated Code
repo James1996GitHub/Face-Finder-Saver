@@ -1,0 +1,63 @@
+# IMPORTS
+import cv2
+import os
+########################################################################################################################
+# DEFINITIONS
+FaceCascade = cv2.CascadeClassifier("Resources/haarcascade_frontalface_default")
+SavePath = "Resources/FaceCapture"
+Blue = (255, 0, 0)
+Green = (0, 255, 0)
+Red = (0, 0, 255)
+CaptureRate = 10
+SaveMode = True  # FLAG - Change if you want image to be saved or not.
+ShowImageMode = False  # FLAG - Change if you do not want image to be displayed.
+DisplayFaceMode = False  # FLAG - Change if you do not want faces in the image to be highlighted and labeled.
+imWidth = 400
+imHeight = 300
+########################################################################################################################
+# CAMERA SETUP
+cap = cv2.VideoCapture(0)  # Captures frames from your default webcam.
+cap.set(3, 640)  # Sets horizontal display dimension.
+cap.set(4, 480)  # Sets vertical display dimension. Google cap.set to see other parameters you can set.
+########################################################################################################################
+# MOVING CODE
+global CountFolder  # Sets variable to global meaning the can be altered inside of functions.
+global Count
+Count = 0
+
+def SaveFolder():
+    global CountFolder
+    CountFolder = 0  # Resets variable to 0.
+    while os.path.exists(SavePath + str(CountFolder)):  # Finds latest folder to be created.
+        CountFolder += 1  # Increment.
+    os.makedirs(SavePath + str(CountFolder))  # Creates new folder.
+
+def SaveFrames(CapturedFace, CountFolder, Count):
+    cv2.imwrite(SavePath + str(CountFolder) + "/" + str("Frame") + str(Count) +
+                        "_" + ".png", CapturedFace)  # Specified new files save location/file name.
+
+if SaveMode:
+    SaveFolder()
+
+while True:
+    success, img = cap.read()  # This loop will only run if the if the image frames are being correctly read.
+    imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Converts the image into grayscale.
+    Faces = FaceCascade.detectMultiScale(imgGray, 1.2, 6)  # Instructs cascade to search the grayscale image and return regions where faces are found.
+
+    for (x, y, w, h) in Faces:
+        CapturedFace = img[y - 10:y + h + 10, x - 10:x + w + 10]  # Crops full image down to just the area that a face has been found in.
+
+        if ShowImageMode:
+            if DisplayFaceMode:  # Passes if DisplayFaceMode is high.
+                cv2.rectangle(img, (x, y), (x + w, y + h), Green, 3)  # Highlights area that face has been found in.
+                cv2.putText(img, "FACE", (x, y - 10),
+                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, Red)  # Draws on text to the image where the face has been found.
+            cv2.imshow("Video", img)  # Displays the full image.
+            cv2.imshow("Face", CapturedFace)  # Displays the cropped image of only the face.
+
+    if SaveMode and Count % CaptureRate == 0:  # Passes if SaveMode is high and Count is divisible by the CaptureRate.
+        SaveFrames(CapturedFace, CountFolder, Count)  # Passes variables to and calls SaveFrames function.
+    Count += 1  # Increment.
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):  # Loop continues video till all frames are finished or "q" is pressed.
+        break  # Breaks out of the loop and ends program.
